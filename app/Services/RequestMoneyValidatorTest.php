@@ -48,9 +48,9 @@ class RequestMoneyValidatorTest extends TestCase
             ],
         ];
 
-        $requestMoneyValidator = new RequestMoneyValidator();
-
         foreach ($testsCases as $tests) {
+            $config = new Config($tests['deviation']);
+            $requestMoneyValidator = new RequestMoneyValidator($config);
             $this->assertEquals($tests['wantResult'], $requestMoneyValidator->validate($tests['request'], $tests['transaction'], $tests['deviation']));
         }
     }

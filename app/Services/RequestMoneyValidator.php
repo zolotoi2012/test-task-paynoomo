@@ -7,25 +7,29 @@ use App\Dto\Transaction;
 
 class RequestMoneyValidator implements RequestMoneyInterface
 {
+    private const SCALE = 2;
+
+    public function __construct(
+        private Config $config
+    ){}
+
     public function validate(Request $request, Transaction $transaction, string $deviation = "0"): bool
     {
         if (strtolower($request->currency) != strtolower($transaction->currency)) {
             return false;
         }
 
-        if (env('APP_DEVIATION') != null) {
-            $deviation = env('APP_DEVIATION');
+        $this->config->setDeviation($deviation);
+
+        $deviationRequest = bcsub($request->amount, bcmul($request->amount, $this->config->getDeviation(), self::SCALE), self::SCALE);
+
+        $scale = explode('.', $deviationRequest);
+
+        if (count($scale) < self::SCALE) {
+            return $transaction->amount == $deviationRequest;
         }
 
-        $reqAmount = $request->amount - $request->amount * $deviation;
-
-        $scale = explode('.', $reqAmount);
-
-        if (count($scale) < 2) {
-            return $transaction->amount == $reqAmount;
-        }
-
-        return bccomp($transaction->amount, (string) $reqAmount, strlen($scale[1])) == 0;
+        return bccomp($transaction->amount, $deviationRequest, strlen($scale[1])) == 0;
     }
 }
 
